@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Journal de Paris – Omi, Svenito & Grizi (Online)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Chart.js pour la courbe d'equity -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 0.25rem;
+    }
+    h2 {
+      margin: 0.5rem 0 0.75rem 0;
+    }
+    p.small {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+    .card {
+      background: #020617;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 25px rgba(15,23,42,0.8);
+    }
+    .flex {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .flex > div {
+      flex: 1 1 180px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 0.2rem;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.5rem;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px #22c55e55;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      background: #22c55e;
+      color: #022c22;
+      font-weight: 600;
+      transition: transform 0.05s ease, box-shadow 0.1s ease, background 0.1s ease;
+    }
+    button:hover {
+      background: #16a34a;
+      box-shadow: 0 8px 22px rgba(22,163,74,0.5);
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+    .button-small {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+      border-radius: 999px;
+    }
+    .button-danger {
+      background: #ef4444;
+      color: #fee2e2;
+    }
+    .button-danger:hover {
+      background: #dc2626;
+      box-shadow: 0 6px 15px rgba(220,38,38,0.6);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+    .stat {
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.6rem;
+      border: 1px solid #1f2937;
+      background: #020617;
+    }
+    .stat-title {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 0.25rem;
+    }
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    .stat-positive { color: #4ade80; }
+    .stat-negative { color: #f97373; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    th, td {
+      padding: 0.4rem 0.35rem;
+      border-bottom: 1px solid #111827;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #9ca3af;
+      position: sticky;
+      top: 0;
+      background: #020617;
+      z-index: 1;
+    }
+    .right { text-align: right; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid #1f2937;
+    }
+    .pill-win {
+      color: #4ade80;
+      border-color: #22c55e;
+    }
+    .pill-loss {
+      color: #f97373;
+      border-color: #ef4444;
+    }
+    .pill-pending {
+      color: #fbbf24;
+      border-color: #facc15;
+    }
+    .result-select {
+      width: auto;
+      min-width: 90px;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.3rem;
+    }
+
+    .bettor-cell {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .bettor-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .bettor-omi { color: #60a5fa; }
+    .bettor-omi .bettor-dot { background-color: #3b82f6; }
+    .bettor-svenito { color: #4ade80; }
+    .bettor-svenito .bettor-dot { background-color: #22c55e; }
+    .bettor-grizi { color: #facc15; }
+    .bettor-grizi .bettor-dot { background-color: #eab308; }
+
+    tr.row-omi td { border-left: 3px solid #3b82f6; }
+    tr.row-svenito td { border-left: 3px solid #22c55e; }
+    tr.row-grizi td { border-left: 3px solid #eab308; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      font-size: 0.75rem;
+      color: #e5e7eb;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        padding: 0.75rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+      }
+      .card {
+        padding: 0.75rem;
+      }
+      table {
+        font-size: 0.72rem;
+      }
+      th, td {
+        padding: 0.3rem 0.25rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Journal de Paris (Google Sheets)</h1>
+    <p class="small" style="text-align:center;">
+      Omi (bleu), Svenito (vert) & Grizi (jaune) – <strong>Bankroll fixe : 1000€ chacun</strong>.<br>
+      Les données sont partagées via Google Sheets (Apps Script).
+    </p>
+
+    <div class="card">
+      <h2>Paramètres</h2>
+      <div class="flex">
+        <div>
+          <label>Bankroll de départ</label>
+          <div class="stat">
+            <div class="stat-title">Par joueur</div>
+            <div class="stat-value">1000.00</div>
+          </div>
+        </div>
+        <div>
+          <label for="filterBettor">Filtrer par parieur</label>
+          <select id="filterBettor">
+            <option value="">Tous</option>
+            <option value="Omi">Omi</option>
+            <option value="Svenito">Svenito</option>
+            <option value="Grizi">Grizi</option>
+          </select>
+        </div>
+        <div>
+          <label>Date & heure (système)</label>
+          <div class="stat">
+            <div class="stat-title">Maintenant</div>
+            <div class="stat-value" id="currentDateTime">--</div>
+          </div>
+        </div>
+      </div>
+      <p class="small">
+        💾 Tous les paris sont stockés dans l'onglet <strong>Bets</strong> de ta Google Sheet via ta Web App Apps Script.
+      </p>
+      <p class="small" id="backendError" style="color:#f97373; display:none;">
+        ⚠️ Erreur de connexion à la Web App Google (URL ou permissions). Vérifie le script & les droits de déploiement.
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Ajouter un pari</h2>
+      <form id="betForm">
+        <div class="flex">
+          <div>
+            <label for="bettor">Parieur</label>
+            <select id="bettor" required>
+              <option value="Omi">Omi</option>
+              <option value="Svenito">Svenito</option>
+              <option value="Grizi">Grizi</option>
+            </select>
+          </div>
+          <div>
+            <label for="match">Match / pari</label>
+            <input type="text" id="match" placeholder="Ex: PSG – OM" required>
+          </div>
+          <div>
+            <label for="description">Détails (live, combiné, +2.5, buteur, etc.)</label>
+            <input type="text" id="description" placeholder="Ex: pris en live, combiné +2.5 buts, buteur Mbappé" required>
+          </div>
+        </div>
+
+        <div class="flex" style="margin-top:0.5rem;">
+          <div>
+            <label for="odds">Cote</label>
+            <input type="number" id="odds" step="0.01" placeholder="Ex: 1.85" required>
+          </div>
+          <div>
+            <label for="stake">Mise</label>
+            <input type="number" id="stake" step="0.01" placeholder="Ex: 25" required>
+          </div>
+          <div>
+            <label>Gain potentiel</label>
+            <div class="stat">
+              <div class="stat-title">Si gagné</div>
+              <div class="stat-value" id="potentialGain">0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:0.75rem; display:flex; justify-content:flex-end;">
+          <button type="submit" style="max-width:200px;">Ajouter le pari</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="flex" style="align-items:center; justify-content:space-between;">
+        <h2>Statistiques & Equity</h2>
+        <span class="badge">
+          <span class="badge-dot"></span>
+          <span id="contextLabel">Global (3 courbes)</span>
+        </span>
+      </div>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-title">Bankroll (affichée)</div>
+          <div class="stat-value" id="statBankroll">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Nombre de paris (clos)</div>
+          <div class="stat-value" id="statCount">0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Gagnés / Perdus</div>
+          <div class="stat-value" id="statWinLoss">0 / 0</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Winrate</div>
+          <div class="stat-value" id="statWinRate">0 %</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">Profit net</div>
+          <div class="stat-value" id="statProfit">0.00</div>
+        </div>
+        <div class="stat">
+          <div class="stat-title">ROI</div>
+          <div class="stat-value" id="statROI">0 %</div>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:0.5rem;">
+        ROI = Profit net / Mise totale. 
+        En mode « Tous », tu vois 3 courbes d’equity séparées (Omi bleu, Svenito vert, Grizi jaune).
+      </p>
+
+      <div style="margin-top:1rem; height:220px;">
+        <canvas id="equityChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Journal des paris</h2>
+      <div style="max-height:420px; overflow-x:auto; border-radius:0.5rem; border:1px solid #111827;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Date & heure</th>
+              <th>Parieur</th>
+              <th>Match</th>
+              <th>Détails</th>
+              <th>Cote</th>
+              <th>Mise</th>
+              <th>Gain pot.</th>
+              <th>Résultat</th>
+              <th>Profit</th>
+              <th>Bankroll joueur après</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="betsTableBody"></tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:0.5rem;">
+        Les données sont partagées entre tous ceux qui utilisent ce fichier avec la même Google Sheet.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz4OAwKODUaOWmfkN8kdA7guvz8Zryi14uyVXGcONAYuZqb5N6dULPelgKETWI5Lw10Eg/exec";
+    const START_BANKROLL = 1000;
+    const BETTORS = ["Omi", "Svenito", "Grizi"];
+
+    let bets = [];
+
+    const filterBettorSelect = document.getElementById("filterBettor");
+    const betForm = document.getElementById("betForm");
+    const bettorInput = document.getElementById("bettor");
+    const matchInput = document.getElementById("match");
+    const descriptionInput = document.getElementById("description");
+    const oddsInput = document.getElementById("odds");
+    const stakeInput = document.getElementById("stake");
+    const potentialGainDisplay = document.getElementById("potentialGain");
+    const currentDateTimeEl = document.getElementById("currentDateTime");
+
+    const statBankroll = document.getElementById("statBankroll");
+    const statCount = document.getElementById("statCount");
+    const statWinLoss = document.getElementById("statWinLoss");
+    const statWinRate = document.getElementById("statWinRate");
+    const statProfit = document.getElementById("statProfit");
+    const statROI = document.getElementById("statROI");
+    const betsTableBody = document.getElementById("betsTableBody");
+    const contextLabel = document.getElementById("contextLabel");
+    const backendErrorEl = document.getElementById("backendError");
+
+    let equityChart = null;
+
+    function parseNum(v) {
+      if (typeof v === "number") return v;
+      if (!v && v !== 0) return NaN;
+      return parseFloat(String(v).replace(",", "."));
+    }
+
+    function formatMoney(n) {
+      if (isNaN(n)) return "0.00";
+      return n.toFixed(2);
+    }
+
+    function formatPct(n) {
+      if (isNaN(n)) return "0 %";
+      return n.toFixed(1) + " %";
+    }
+
+    function formatDateTime(ts) {
+      if (!ts) return "";
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return "";
+      const pad = (x) => String(x).padStart(2, "0");
+      const day = pad(d.getDate());
+      const month = pad(d.getMonth() + 1);
+      const year = d.getFullYear();
+      const hours = pad(d.getHours());
+      const mins = pad(d.getMinutes());
+      return `${day}.${month}.${year} ${hours}h${mins}`;
+    }
+
+    function updateCurrentDateTime() {
+      currentDateTimeEl.textContent = formatDateTime(new Date().toISOString());
+    }
+    setInterval(updateCurrentDateTime, 1000);
+
+    async function apiGetBets() {
+      try {
+        const res = await fetch(WEB_APP_URL + "?action=getBets");
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.bets)) {
+          bets = data.bets;
+          backendErrorEl.style.display = "none";
+          renderAll();
+        } else {
+          backendErrorEl.style.display = "block";
+          console.error("Réponse invalide getBets", data);
+        }
+      } catch (e) {
+        console.error("Erreur getBets", e);
+        backendErrorEl.style.display = "block";
+      }
+    }
+
+    async function apiAddBet(bet) {
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "addBet",
+            bet
+          })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          await apiGetBets();
+        } else {
+          alert("Erreur lors de l'ajout du pari.");
+          console.error("Réponse addBet", data);
+        }
+      } catch (e) {
+        console.error("Erreur addBet", e);
+        alert("Erreur réseau lors de l'ajout du pari.");
+      }
+    }
+
+    async function apiUpdateStatus(id, status) {
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "updateStatus",
+            id,
+            status
+          })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          await apiGetBets();
+        } else {
+          alert("Erreur lors de la mise à jour du résultat.");
+          console.error("Réponse updateStatus", data);
+        }
+      } catch (e) {
+        console.error("Erreur updateStatus", e);
+        alert("Erreur réseau lors de la mise à jour du résultat.");
+      }
+    }
+
+    async function apiDeleteBet(id) {
+      try {
+        const res = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "deleteBet",
+            id
+          })
+        });
+        const data = await res.json();
+        if (data && data.success) {
+          await apiGetBets();
+        } else {
+          alert("Erreur lors de la suppression du pari.");
+          console.error("Réponse deleteBet", data);
+        }
+      } catch (e) {
+        console.error("Erreur deleteBet", e);
+        alert("Erreur réseau lors de la suppression du pari.");
+      }
+    }
+
+    function updatePotentialGain() {
+      const odds = parseNum(oddsInput.value);
+      const stake = parseNum(stakeInput.value);
+      if (isNaN(odds) || isNaN(stake)) {
+        potentialGainDisplay.textContent = "0.00";
+        return;
+      }
+      potentialGainDisplay.textContent = formatMoney(odds * stake);
+    }
+
+    oddsInput.addEventListener("input", updatePotentialGain);
+    stakeInput.addEventListener("input", updatePotentialGain);
+
+    filterBettorSelect.addEventListener("change", () => {
+      renderAll();
+    });
+
+    function handleDelete(id) {
+      if (!confirm("Supprimer ce pari ?")) return;
+      apiDeleteBet(id);
+    }
+
+    function computeStatsAndRenderTable() {
+      betsTableBody.innerHTML = "";
+
+      const filter = filterBettorSelect.value;
+      const allSorted = bets
+        .slice()
+        .sort((a, b) => {
+          const ta = a.timestamp || "";
+          const tb = b.timestamp || "";
+          const da = new Date(ta).getTime();
+          const db = new Date(tb).getTime();
+          if (!isNaN(da) && !isNaN(db) && da !== db) return da - db;
+          return (a.id || 0) - (b.id || 0);
+        });
+
+      const perBank = {
+        "Omi": START_BANKROLL,
+        "Svenito": START_BANKROLL,
+        "Grizi": START_BANKROLL
+      };
+
+      let totalClosed = 0;
+      let wins = 0;
+      let losses = 0;
+      let totalProfit = 0;
+      let totalStake = 0;
+
+      const labels = [];
+      let eqOmi = START_BANKROLL;
+      let eqSvenito = START_BANKROLL;
+      let eqGrizi = START_BANKROLL;
+      const pointsOmi = [];
+      const pointsSvenito = [];
+      const pointsGrizi = [];
+      const pointsSingle = [];
+
+      let index = 0;
+
+      for (const bet of allSorted) {
+        index++;
+        const odds = parseNum(bet.odds);
+        const stake = parseNum(bet.stake);
+        let profit = 0;
+
+        if (!isNaN(stake)) {
+          if (bet.status === "won" && !isNaN(odds)) {
+            profit = stake * (odds - 1);
+          } else if (bet.status === "lost") {
+            profit = -stake;
+          }
+        }
+
+        if ((bet.status === "won" || bet.status === "lost") && perBank[bet.bettor] !== undefined) {
+          perBank[bet.bettor] += profit;
+        }
+
+        const inFilter = !filter || bet.bettor === filter;
+        if (inFilter && (bet.status === "won" || bet.status === "lost")) {
+          totalClosed++;
+          totalProfit += profit;
+          totalStake += isNaN(stake) ? 0 : stake;
+          if (bet.status === "won") wins++;
+          else if (bet.status === "lost") losses++;
+        }
+
+        if (inFilter) {
+          const tr = document.createElement("tr");
+          if (bet.bettor === "Omi") tr.classList.add("row-omi");
+          else if (bet.bettor === "Svenito") tr.classList.add("row-svenito");
+          else if (bet.bettor === "Grizi") tr.classList.add("row-grizi");
+
+          const tdIndex = document.createElement("td");
+          tdIndex.textContent = index;
+          tr.appendChild(tdIndex);
+
+          const tdDate = document.createElement("td");
+          tdDate.textContent = formatDateTime(bet.timestamp);
+          tr.appendChild(tdDate);
+
+          const tdBettor = document.createElement("td");
+          tdBettor.classList.add("bettor-cell");
+          const dot = document.createElement("span");
+          dot.classList.add("bettor-dot");
+          tdBettor.appendChild(dot);
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = bet.bettor || "";
+          tdBettor.appendChild(nameSpan);
+          if (bet.bettor === "Omi") tdBettor.classList.add("bettor-omi");
+          else if (bet.bettor === "Svenito") tdBettor.classList.add("bettor-svenito");
+          else if (bet.bettor === "Grizi") tdBettor.classList.add("bettor-grizi");
+          tr.appendChild(tdBettor);
+
+          const tdMatch = document.createElement("td");
+          tdMatch.textContent = bet.match || "";
+          tr.appendChild(tdMatch);
+
+          const tdDetails = document.createElement("td");
+          tdDetails.textContent = bet.description || "";
+          tr.appendChild(tdDetails);
+
+          const tdOdds = document.createElement("td");
+          tdOdds.textContent = isNaN(odds) ? "-" : odds.toFixed(2);
+          tr.appendChild(tdOdds);
+
+          const tdStake = document.createElement("td");
+          tdStake.classList.add("right");
+          tdStake.textContent = isNaN(stake) ? "-" : formatMoney(stake);
+          tr.appendChild(tdStake);
+
+          const tdGainPot = document.createElement("td");
+          tdGainPot.classList.add("right");
+          if (!isNaN(odds) && !isNaN(stake)) {
+            tdGainPot.textContent = formatMoney(odds * stake);
+          } else {
+            tdGainPot.textContent = "-";
+          }
+          tr.appendChild(tdGainPot);
+
+          const tdStatus = document.createElement("td");
+          const select = document.createElement("select");
+          select.classList.add("result-select");
+          select.innerHTML = `
+            <option value="pending">En cours</option>
+            <option value="won">Gagné</option>
+            <option value="lost">Perdu</option>
+          `;
+          select.value = bet.status || "pending";
+          select.addEventListener("change", () => {
+            apiUpdateStatus(bet.id, select.value);
+          });
+          tdStatus.appendChild(select);
+          tr.appendChild(tdStatus);
+
+          const tdProfit = document.createElement("td");
+          tdProfit.classList.add("right");
+          const pill = document.createElement("span");
+          pill.classList.add("pill");
+          if (bet.status === "won") pill.classList.add("pill-win");
+          else if (bet.status === "lost") pill.classList.add("pill-loss");
+          else pill.classList.add("pill-pending");
+          pill.textContent =
+            bet.status === "pending"
+              ? "-"
+              : (profit >= 0 ? "+" + formatMoney(profit) : formatMoney(profit));
+          tdProfit.appendChild(pill);
+          tr.appendChild(tdProfit);
+
+          const tdBankroll = document.createElement("td");
+          tdBankroll.classList.add("right");
+          const bankForThisBettor = perBank[bet.bettor] !== undefined ? perBank[bet.bettor] : START_BANKROLL;
+          tdBankroll.textContent = formatMoney(bankForThisBettor);
+          tr.appendChild(tdBankroll);
+
+          const tdActions = document.createElement("td");
+          tdActions.style.textAlign = "center";
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Suppr";
+          delBtn.classList.add("button-small", "button-danger");
+          delBtn.addEventListener("click", () => handleDelete(bet.id));
+          tdActions.appendChild(delBtn);
+          tr.appendChild(tdActions);
+
+          betsTableBody.appendChild(tr);
+        }
+
+        if (bet.status === "won" || bet.status === "lost") {
+          labels.push("#" + index);
+
+          if (!filter) {
+            if (bet.bettor === "Omi") eqOmi += profit;
+            if (bet.bettor === "Svenito") eqSvenito += profit;
+            if (bet.bettor === "Grizi") eqGrizi += profit;
+            pointsOmi.push(eqOmi);
+            pointsSvenito.push(eqSvenito);
+            pointsGrizi.push(eqGrizi);
+          } else {
+            if (filter === bet.bettor) {
+              const bankVal = perBank[bet.bettor] !== undefined ? perBank[bet.bettor] : START_BANKROLL;
+              pointsSingle.push(bankVal);
+            }
+          }
+        }
+      }
+
+      let bankrollDisplay = 0;
+      if (!filter) {
+        bankrollDisplay = BETTORS.reduce((sum, b) => sum + (perBank[b] || START_BANKROLL), 0);
+      } else {
+        bankrollDisplay = perBank[filter] || START_BANKROLL;
+      }
+
+      const winRate = (wins + losses) > 0 ? wins / (wins + losses) * 100 : 0;
+      const roi = totalStake > 0 ? (totalProfit / totalStake) * 100 : 0;
+
+      statBankroll.textContent = formatMoney(bankrollDisplay);
+      statCount.textContent = String(totalClosed);
+      statWinLoss.textContent = `${wins} / ${losses}`;
+      statWinRate.textContent = formatPct(winRate);
+      statProfit.textContent = formatMoney(totalProfit);
+      statROI.textContent = formatPct(roi);
+
+      statProfit.classList.remove("stat-positive", "stat-negative");
+      if (totalProfit > 0.0001) statProfit.classList.add("stat-positive");
+      else if (totalProfit < -0.0001) statProfit.classList.add("stat-negative");
+
+      const ctxText = filter ? filter : "Global (3 courbes)";
+      contextLabel.textContent = ctxText;
+
+      const datasets = [];
+      if (!filter) {
+        if (pointsOmi.length) {
+          datasets.push({
+            label: "Omi",
+            data: pointsOmi,
+            color: "#3b82f6",
+            bg: "rgba(59,130,246,0.15)"
+          });
+        }
+        if (pointsSvenito.length) {
+          datasets.push({
+            label: "Svenito",
+            data: pointsSvenito,
+            color: "#22c55e",
+            bg: "rgba(34,197,94,0.15)"
+          });
+        }
+        if (pointsGrizi.length) {
+          datasets.push({
+            label: "Grizi",
+            data: pointsGrizi,
+            color: "#eab308",
+            bg: "rgba(234,179,8,0.20)"
+          });
+        }
+      } else {
+        let color = "#22c55e";
+        let bg = "rgba(34,197,94,0.15)";
+        if (filter === "Omi") {
+          color = "#3b82f6";
+          bg = "rgba(59,130,246,0.15)";
+        } else if (filter === "Grizi") {
+          color = "#eab308";
+          bg = "rgba(234,179,8,0.20)";
+        }
+        datasets.push({
+          label: filter,
+          data: pointsSingle,
+          color,
+          bg
+        });
+      }
+
+      renderEquityChart(labels, datasets);
+    }
+
+    function renderEquityChart(labels, datasets) {
+      const ctx = document.getElementById("equityChart").getContext("2d");
+      if (equityChart) {
+        equityChart.destroy();
+      }
+      equityChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: datasets.map(d => ({
+            label: d.label,
+            data: d.data,
+            borderColor: d.color,
+            backgroundColor: d.bg,
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.2
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, labels: { color: "#e5e7eb" } },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + " – Bankroll : " + formatMoney(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: "#9ca3af" },
+              grid: { color: "#111827" }
+            },
+            y: {
+              ticks: { color: "#9ca3af" },
+              grid: { color: "#111827" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAll() {
+      computeStatsAndRenderTable();
+    }
+
+    betForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const now = new Date();
+      const timestamp = now.toISOString();
+      const bettor = bettorInput.value;
+      const match = matchInput.value.trim();
+      const description = descriptionInput.value.trim();
+      const odds = parseNum(oddsInput.value);
+      const stake = parseNum(stakeInput.value);
+
+      if (!match || !description || isNaN(odds) || isNaN(stake) || stake <= 0 || odds <= 1) {
+        alert("Vérifie le match, les détails, la cote (>1) et la mise (>0).");
+        return;
+      }
+
+      const bet = {
+        timestamp,
+        bettor,
+        match,
+        description,
+        odds,
+        stake,
+        status: "pending"
+      };
+
+      apiAddBet(bet);
+      betForm.reset();
+      updatePotentialGain();
+      updateCurrentDateTime();
+    });
+
+    updateCurrentDateTime();
+    updatePotentialGain();
+    apiGetBets();
+  </script>
+</body>
+</html>
